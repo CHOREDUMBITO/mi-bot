@@ -280,8 +280,9 @@ async def help_command(interaction: discord.Interaction):
 
 keep_alive()
 
+print(f"TOKEN leído: {os.getenv('TOKEN')[:5]}...")  # Para verificar que sí lee el token
+
 try:
     bot.run(os.getenv("TOKEN"))
 except Exception as e:
     print(f"❌ Error al iniciar el bot: {e}")
-
