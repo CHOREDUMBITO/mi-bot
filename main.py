@@ -205,6 +205,54 @@ async def revisar_youtube():
                 await canal.send(embed=embed)
 
 # ------------------------------
+# COMANDO HELP (con categorías)
+# ------------------------------
+@tree.command(name="help", description="Lista de comandos organizados por categoría", extras={"categoria": "Utilidad"})
+async def help_command(interaction: discord.Interaction):
+    categorias = defaultdict(list)
+    for command in tree.get_commands():
+        categoria = command.extras.get("categoria", "Otros")
+        categorias[categoria].append(command)
+
+    # Filtramos categorías visibles
+    categorias_visibles = {}
+    for cat, comandos in categorias.items():
+        if cat == "Moderación" and not interaction.user.guild_permissions.administrator:
+            continue
+        categorias_visibles[cat] = comandos
+
+    # Opciones ordenadas (Economía siempre primero si existe)
+    opciones_ordenadas = []
+    if "Economía" in categorias_visibles:
+        opciones_ordenadas.append(discord.SelectOption(label="Economía"))
+    for cat in categorias_visibles:
+        if cat != "Economía":
+            opciones_ordenadas.append(discord.SelectOption(label=cat))
+
+    select = Select(placeholder="Selecciona categoría", options=opciones_ordenadas)
+
+    async def select_callback(interaction_select: discord.Interaction):
+        categoria = select.values[0]
+        comandos = categorias_visibles[categoria]
+        descripcion = "\n".join([f"**/{c.name}** → {c.description}" for c in comandos])
+        embed = discord.Embed(
+            title=f"📜 Comandos de {categoria}",
+            description=descripcion,
+            color=discord.Color.blurple()
+        )
+        await interaction_select.response.edit_message(embed=embed, view=view)
+
+    select.callback = select_callback
+    view = View()
+    view.add_item(select)
+    embed = discord.Embed(
+        title="📜 Lista de Comandos",
+        description="Selecciona una categoría",
+        color=discord.Color.green()
+    )
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+# ------------------------------
 # COMANDOS UTILIDAD / MODERACIÓN
 # ------------------------------
 @tree.command(name="sugerencia", description="Envía una sugerencia al servidor", extras={"categoria": "Utilidad"})
@@ -274,7 +322,7 @@ async def balance(interaction: discord.Interaction, usuario: discord.Member = No
     total = obtener_saldo(usuario.id) + obtener_banco(usuario.id)
     await interaction.response.send_message(
         f"💰 {usuario.display_name} tiene {total} monedas (💵 {obtener_saldo(usuario.id)} | 🏦 {obtener_banco(usuario.id)})",
-        ephemeral=True  # Cambiado a ephemeral
+        ephemeral=True
     )
 
 @tree.command(name="work", description="Trabaja y gana monedas (1h cooldown)", extras={"categoria": "Economía"})
@@ -285,7 +333,7 @@ async def work(interaction: discord.Interaction):
         espera = timedelta(hours=1) - (ahora - cooldowns_work[user_id])
         await interaction.response.send_message(
             f"⏳ Espera {espera.seconds//60}m para volver a trabajar.",
-            ephemeral=True  # Cambiado a ephemeral
+            ephemeral=True
         )
         return
     ganancias = random.randint(50, 150)
@@ -293,7 +341,7 @@ async def work(interaction: discord.Interaction):
     cooldowns_work[user_id] = ahora
     await interaction.response.send_message(
         f"💼 Ganaste {ganancias} monedas trabajando.",
-        ephemeral=True  # Cambiado a ephemeral
+        ephemeral=True
     )
 
 @tree.command(name="daily", description="Reclama tu recompensa diaria", extras={"categoria": "Economía"})
@@ -304,7 +352,7 @@ async def daily(interaction: discord.Interaction):
         espera = timedelta(hours=24) - (ahora - cooldowns_daily[user_id])
         await interaction.response.send_message(
             f"⏳ Espera {espera.seconds//3600}h para volver a reclamar.",
-            ephemeral=True  # Cambiado a ephemeral
+            ephemeral=True
         )
         return
     recompensa = random.randint(100, 300)
@@ -312,7 +360,7 @@ async def daily(interaction: discord.Interaction):
     cooldowns_daily[user_id] = ahora
     await interaction.response.send_message(
         f"🎁 Reclamaste {recompensa} monedas diarias.",
-        ephemeral=True  # Cambiado a ephemeral
+        ephemeral=True
     )
 
 # --- Banco ---
@@ -320,7 +368,7 @@ async def daily(interaction: discord.Interaction):
 async def bank(interaction: discord.Interaction):
     await interaction.response.send_message(
         f"🏦 Saldo en banco: {obtener_banco(interaction.user.id)} monedas.",
-        ephemeral=True  # Cambiado a ephemeral
+        ephemeral=True
     )
 
 @tree.command(name="deposit", description="Deposita en el banco", extras={"categoria": "Economía"})
@@ -334,7 +382,7 @@ async def deposit(interaction: discord.Interaction, cantidad: int):
     depositar_banco(interaction.user.id, cantidad)
     await interaction.response.send_message(
         f"🏦 Depositaste {cantidad} monedas.",
-        ephemeral=True  # Cambiado a ephemeral
+        ephemeral=True
     )
 
 @tree.command(name="withdraw", description="Retira del banco", extras={"categoria": "Economía"})
@@ -348,7 +396,7 @@ async def withdraw(interaction: discord.Interaction, cantidad: int):
     añadir_saldo(interaction.user.id, cantidad)
     await interaction.response.send_message(
         f"🏦 Retiraste {cantidad} monedas.",
-        ephemeral=True  # Cambiado a ephemeral
+        ephemeral=True
     )
 
 # --- Transferencias ---
@@ -366,7 +414,7 @@ async def pay(interaction: discord.Interaction, usuario: discord.Member, cantida
     añadir_saldo(usuario.id, cantidad)
     await interaction.response.send_message(
         f"💸 Has pagado {cantidad} monedas a {usuario.display_name}.",
-        ephemeral=True  # Cambiado a ephemeral
+        ephemeral=True
     )
 
 # --- Tienda ---
@@ -377,7 +425,7 @@ async def shop(interaction: discord.Interaction):
         return
     desc = "\n".join([f"**{n.capitalize()}** - {d['precio']} monedas\n_{d['descripcion']}_" for n, d in tienda_items.items()])
     embed = discord.Embed(title="🛒 Tienda", description=desc, color=discord.Color.green())
-    await interaction.response.send_message(embed=embed, ephemeral=True)  # Cambiado a ephemeral
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @tree.command(name="buy", description="Compra un artículo", extras={"categoria": "Economía"})
 async def buy(interaction: discord.Interaction, articulo: str):
@@ -395,7 +443,7 @@ async def buy(interaction: discord.Interaction, articulo: str):
     guardar_inventario()
     await interaction.response.send_message(
         f"✅ Compraste {articulo} por {precio} monedas.",
-        ephemeral=True  # Cambiado a ephemeral
+        ephemeral=True
     )
 
 @tree.command(name="sell", description="Vende un artículo (50% valor)", extras={"categoria": "Economía"})
@@ -405,90 +453,30 @@ async def sell(interaction: discord.Interaction, articulo: str):
     if uid not in inventarios or articulo not in inventarios[uid] or inventarios[uid][articulo] <= 0:
         await interaction.response.send_message("❌ No tienes ese artículo.", ephemeral=True)
         return
-    if articulo not in tienda_items:
-        await interaction.response.send_message("❌ Ese artículo ya no existe en la tienda.", ephemeral=True)
-        return
-    precio = tienda_items[articulo]["precio"] // 2
+    precio = tienda_items.get(articulo, {}).get("precio", 0) // 2
     inventarios[uid][articulo] -= 1
     if inventarios[uid][articulo] == 0:
         del inventarios[uid][articulo]
     guardar_inventario()
-    añadir_saldo(uid, precio)
+    añadir_saldo(interaction.user.id, precio)
     await interaction.response.send_message(
-        f"💰 Vendiste {articulo} por {precio} monedas.",
-        ephemeral=True  # Cambiado a ephemeral
+        f"✅ Vendiste {articulo} por {precio} monedas.",
+        ephemeral=True
     )
 
-@tree.command(name="inventory", description="Ver inventario", extras={"categoria": "Economía"})
-async def inventory(interaction: discord.Interaction, usuario: discord.Member = None):
-    usuario = usuario or interaction.user
-    uid = str(usuario.id)
+# --- Inventario ---
+@tree.command(name="inventory", description="Muestra tu inventario", extras={"categoria": "Economía"})
+async def inventory(interaction: discord.Interaction):
+    uid = str(interaction.user.id)
     if uid not in inventarios or not inventarios[uid]:
-        await interaction.response.send_message(f"📦 {usuario.display_name} no tiene artículos.", ephemeral=True)
+        await interaction.response.send_message("🎒 Tu inventario está vacío.", ephemeral=True)
         return
-    desc = "\n".join([f"**{i.capitalize()}** x{c}" for i, c in inventarios[uid].items()])
-    embed = discord.Embed(title=f"📦 Inventario de {usuario.display_name}", description=desc, color=discord.Color.blue())
-    await interaction.response.send_message(embed=embed, ephemeral=True)  # Cambiado a ephemeral
-
-# --- Comandos admin para modificar tienda ---
-@tree.command(name="additem", description="Añadir artículo a tienda (admin)", extras={"categoria": "Economía"})
-@app_commands.checks.has_permissions(administrator=True)
-async def additem(interaction: discord.Interaction, nombre: str, precio: int, descripcion: str):
-    nombre = nombre.lower()
-    tienda_items[nombre] = {"precio": precio, "descripcion": descripcion}
-    guardar_tienda()
-    await interaction.response.send_message(f"✅ Añadido {nombre} a la tienda.", ephemeral=True)  # Cambiado a ephemeral
-
-@tree.command(name="removeitem", description="Quitar artículo de tienda (admin)", extras={"categoria": "Economía"})
-@app_commands.checks.has_permissions(administrator=True)
-async def removeitem(interaction: discord.Interaction, nombre: str):
-    nombre = nombre.lower()
-    if nombre not in tienda_items:
-        await interaction.response.send_message("❌ No existe en la tienda.", ephemeral=True)
-        return
-    del tienda_items[nombre]
-    guardar_tienda()
-    await interaction.response.send_message(f"✅ Eliminado {nombre} de la tienda.", ephemeral=True)  # Cambiado a ephemeral
-
-# --- Comando para apostar ---
-@tree.command(name="bet", description="Apuesta una cantidad", extras={"categoria": "Economía"})
-async def bet(interaction: discord.Interaction, cantidad: int):
-    if cantidad <= 0:
-        await interaction.response.send_message("❌ Cantidad inválida.", ephemeral=True)
-        return
-    if obtener_saldo(interaction.user.id) < cantidad:
-        await interaction.response.send_message("❌ No tienes suficiente dinero para apostar.", ephemeral=True)
-        return
-    resultado = random.choice(["ganar", "perder"])
-    if resultado == "ganar":
-        añadir_saldo(interaction.user.id, cantidad)
-        await interaction.response.send_message(f"🎉 ¡Ganaste {cantidad} monedas!", ephemeral=True)  # Cambiado a ephemeral
-    else:
-        restar_saldo(interaction.user.id, cantidad)
-        await interaction.response.send_message(f"😞 Perdiste {cantidad} monedas.", ephemeral=True)  # Cambiado a ephemeral
-
-# --- Comando Top dinero (público) ---
-@tree.command(name="topmoney", description="Top usuarios con más dinero", extras={"categoria": "Economía"})
-async def topmoney(interaction: discord.Interaction):
-    if not economia:
-        await interaction.response.send_message("❌ No hay datos aún.")
-        return
-    top = sorted(economia.items(), key=lambda x: x[1], reverse=True)[:10]
-    descripcion = ""
-    for i, (user_id, dinero) in enumerate(top, start=1):
-        try:
-            usuario = await bot.fetch_user(int(user_id))
-            nombre = usuario.display_name
-        except:
-            nombre = f"Usuario {user_id}"
-        descripcion += f"**#{i}** {nombre} → {dinero} monedas\n"
-    embed = discord.Embed(title="💰 Top Dinero", description=descripcion, color=discord.Color.gold())
-    await interaction.response.send_message(embed=embed)
+    desc = "\n".join([f"**{art.capitalize()}** x{cant}" for art, cant in inventarios[uid].items()])
+    embed = discord.Embed(title=f"🎒 Inventario de {interaction.user.display_name}", description=desc, color=discord.Color.orange())
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # ------------------------------
-# EJECUTAR EL BOT
+# EJECUCIÓN
 # ------------------------------
-if __name__ == "__main__":
-    keep_alive()
-    TOKEN = os.getenv("TOKEN")
-    bot.run(TOKEN)
+keep_alive()
+bot.run(os.environ['TOKEN'])
