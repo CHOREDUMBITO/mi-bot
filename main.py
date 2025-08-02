@@ -1,17 +1,16 @@
 import discord
 from discord import app_commands
+from discord.ext import tasks
 from flask import Flask
 from threading import Thread
 import os
 import random
 import json
+import feedparser
 from discord.ui import View, Select
 from collections import defaultdict
-import feedparser
-from discord.ext import tasks
-import asyncio
 
-# --- Mantener vivo el bot en Replit ---
+# --- Mantener vivo el bot en Render/Replit ---
 app = Flask('')
 
 @app.route('/')
@@ -31,10 +30,10 @@ intents.message_content = True
 bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 
-# --- Canales de Discord ---
+# --- Canales y datos ---
 CANAL_SUGERENCIAS = 1108242948879028334
-CANAL_NIVELES = 1400694590327095378  
-CANAL_YOUTUBE = 1100279149236600882   # <-- AQUÍ SE PUBLICAN LOS VIDEOS
+CANAL_NIVELES = 1400694590327095378
+CANAL_YOUTUBE = 1100279149236600882  # Canal para notificaciones de YouTube
 
 # --- Sistema de niveles ---
 DATA_FILE = "niveles.json"
@@ -49,9 +48,10 @@ def guardar_datos():
     with open(DATA_FILE, "w") as f:
         json.dump(niveles, f, indent=4)
 
-# --- Variables de YouTube ---
+# --- Sistema YouTube ---
 YOUTUBE_FEED = "https://www.youtube.com/feeds/videos.xml?channel_id=UC2OiC1E-tHN-IAO7RQINk_g"
 ultimo_video_id = None
+
 
 # ------------------------------
 # EVENTOS
@@ -60,9 +60,8 @@ ultimo_video_id = None
 @bot.event
 async def on_ready():
     await tree.sync()
+    revisar_youtube.start()
     print(f"✅ Bot conectado como {bot.user}")
-    if not revisar_youtube.is_running():
-        revisar_youtube.start()
 
 
 @bot.event
@@ -94,6 +93,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+
 # ------------------------------
 # TAREA PARA REVISAR YOUTUBE
 # ------------------------------
@@ -114,7 +114,7 @@ async def revisar_youtube():
             if canal:
                 titulo = nuevo_video.title
                 url = nuevo_video.link
-                descripcion = nuevo_video.media_description
+                descripcion = getattr(nuevo_video, "media_description", "¡Nuevo video disponible!")
 
                 embed = discord.Embed(
                     title=titulo,
@@ -123,10 +123,11 @@ async def revisar_youtube():
                     color=discord.Color.red()
                 )
                 embed.set_author(name="🎥 ¡Nuevo video en el canal!")
-                embed.set_thumbnail(url=nuevo_video.media_thumbnail[0]['url'])
+                if hasattr(nuevo_video, "media_thumbnail"):
+                    embed.set_thumbnail(url=nuevo_video.media_thumbnail[0]['url'])
 
-                # Mensaje con mención + enlace + embed
-                await canal.send(f"@everyone ¡Nuevo video disponible! 🎬\n{url}", embed=embed)
+                await canal.send(embed=embed)
+
 
 # ------------------------------
 # COMANDOS
