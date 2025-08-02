@@ -7,6 +7,9 @@ import random
 import json
 from discord.ui import View, Select
 from collections import defaultdict
+import feedparser
+from discord.ext import tasks
+import asyncio
 
 # --- Mantener vivo el bot en Replit ---
 app = Flask('')
@@ -28,9 +31,10 @@ intents.message_content = True
 bot = discord.Client(intents=intents)
 tree = app_commands.CommandTree(bot)
 
-# --- Canal permitido para sugerencias y niveles ---
+# --- Canales de Discord ---
 CANAL_SUGERENCIAS = 1108242948879028334
-CANAL_NIVELES = 1400694590327095378  # Cambia por el canal donde quieres anunciar los niveles
+CANAL_NIVELES = 1400694590327095378  
+CANAL_YOUTUBE = 1100279149236600882   # <-- AQUÍ SE PUBLICAN LOS VIDEOS
 
 # --- Sistema de niveles ---
 DATA_FILE = "niveles.json"
@@ -45,6 +49,9 @@ def guardar_datos():
     with open(DATA_FILE, "w") as f:
         json.dump(niveles, f, indent=4)
 
+# --- Variables de YouTube ---
+YOUTUBE_FEED = "https://www.youtube.com/feeds/videos.xml?channel_id=UC2OiC1E-tHN-IAO7RQINk_g"
+ultimo_video_id = None
 
 # ------------------------------
 # EVENTOS
@@ -54,6 +61,8 @@ def guardar_datos():
 async def on_ready():
     await tree.sync()
     print(f"✅ Bot conectado como {bot.user}")
+    if not revisar_youtube.is_running():
+        revisar_youtube.start()
 
 
 @bot.event
@@ -85,6 +94,39 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
+# ------------------------------
+# TAREA PARA REVISAR YOUTUBE
+# ------------------------------
+
+@tasks.loop(minutes=5)
+async def revisar_youtube():
+    global ultimo_video_id
+    feed = feedparser.parse(YOUTUBE_FEED)
+
+    if feed.entries:
+        nuevo_video = feed.entries[0]  # El más reciente
+        video_id = nuevo_video.yt_videoid
+
+        if ultimo_video_id != video_id:
+            ultimo_video_id = video_id
+
+            canal = bot.get_channel(CANAL_YOUTUBE)
+            if canal:
+                titulo = nuevo_video.title
+                url = nuevo_video.link
+                descripcion = nuevo_video.media_description
+
+                embed = discord.Embed(
+                    title=titulo,
+                    url=url,
+                    description=descripcion,
+                    color=discord.Color.red()
+                )
+                embed.set_author(name="🎥 ¡Nuevo video en el canal!")
+                embed.set_thumbnail(url=nuevo_video.media_thumbnail[0]['url'])
+
+                # Mensaje con mención + enlace + embed
+                await canal.send(f"@everyone ¡Nuevo video disponible! 🎬\n{url}", embed=embed)
 
 # ------------------------------
 # COMANDOS
