@@ -281,7 +281,7 @@ async def toplevels(interaction: discord.Interaction):
 async def help_command(interaction: discord.Interaction):
     categorias = defaultdict(list)
 
-    for command in tree.get_commands():
+    for command in bot.tree.get_commands():
         categoria = command.extras.get("categoria", "Otros")
         categorias[categoria].append(command)
 
