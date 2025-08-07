@@ -1,6 +1,6 @@
 import discord
 from discord import app_commands
-from discord.ext import tasks
+from discord.ext import commands, tasks
 from flask import Flask
 from threading import Thread
 import os
@@ -26,11 +26,11 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# --- Cliente principal ---
+# --- Cliente principal con commands.Bot ---
 intents = discord.Intents.default()
 intents.message_content = True
-bot = discord.Client(intents=intents)
-tree = app_commands.CommandTree(bot)
+bot = commands.Bot(command_prefix="!", intents=intents)
+
 
 # --- Canales y datos ---
 CANAL_SUGERENCIAS = 1108242948879028334
