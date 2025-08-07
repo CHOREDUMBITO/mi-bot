@@ -7,6 +7,8 @@ import os
 import random
 import json
 import feedparser
+import math
+import aiohttp
 from discord.ui import View, Select
 from collections import defaultdict
 
@@ -34,6 +36,9 @@ tree = app_commands.CommandTree(bot)
 CANAL_SUGERENCIAS = 1108242948879028334
 CANAL_NIVELES = 1400694590327095378
 CANAL_YOUTUBE = 1100279149236600882  # Canal para notificaciones de YouTube
+
+# --- API OpenWeather ---
+OPENWEATHER_API_KEY = "6b5eabc5ef33b403c00a216e21366bc1"
 
 # --- Sistema de niveles ---
 DATA_FILE = "niveles.json"
@@ -316,6 +321,60 @@ async def help_command(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
+
+
+# ---------- /ship ----------
+@bot.tree.command(name="ship", description="Calcula la compatibilidad entre dos personas.")
+@app_commands.describe(user1="Primera persona", user2="Segunda persona")
+async def ship(interaction: discord.Interaction, user1: discord.User, user2: discord.User):
+    score = random.randint(0, 100)
+    bar = "█" * (score // 10) + "░" * (10 - score // 10)
+    await interaction.response.send_message(
+        f"❤️ Compatibilidad entre {user1.mention} y {user2.mention}: **{score}%**\n`[{bar}]`"
+    )
+
+# ---------- /calc ----------
+@bot.tree.command(name="calc", description="Calculadora simple.")
+@app_commands.describe(expression="Expresión matemática (ej. 2+2*3)")
+async def calc(interaction: discord.Interaction, expression: str):
+    try:
+        result = eval(expression, {"__builtins__": None, "math": math}, {})
+        await interaction.response.send_message(f"🧮 Resultado de `{expression}` = `{result}`")
+    except:
+        await interaction.response.send_message("❌ Expresión inválida.", ephemeral=True)
+
+# ---------- /weather con embed ----------
+@bot.tree.command(name="weather", description="Consulta el clima actual de una ciudad.")
+@app_commands.describe(city="Nombre de la ciudad")
+async def weather(interaction: discord.Interaction, city: str):
+    url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={OPENWEATHER_API_KEY}&units=metric&lang=es"
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            data = await resp.json()
+
+            if resp.status != 200 or "main" not in data:
+                await interaction.response.send_message(f"⚠️ No se encontró la ciudad `{city}`.")
+                return
+
+            clima = data["weather"][0]["description"].capitalize()
+            temp = data["main"]["temp"]
+            sensacion = data["main"]["feels_like"]
+            humedad = data["main"]["humidity"]
+            icon_code = data["weather"][0]["icon"]
+            icon_url = f"http://openweathermap.org/img/wn/{icon_code}@2x.png"
+
+            embed = discord.Embed(
+                title=f"Clima en {city.title()}",
+                description=f"{clima}",
+                color=discord.Color.blue()
+            )
+            embed.set_thumbnail(url=icon_url)
+            embed.add_field(name="🌡️ Temperatura", value=f"{temp}°C", inline=True)
+            embed.add_field(name="🥵 Sensación térmica", value=f"{sensacion}°C", inline=True)
+            embed.add_field(name="💧 Humedad", value=f"{humedad}%", inline=True)
+
+            await interaction.response.send_message(embed=embed)
 
 # ------------------------------
 # EJECUTAR BOT
