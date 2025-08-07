@@ -64,10 +64,14 @@ ultimo_video_id = None
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync() 
-    revisar_youtube.start()
-    print(f"✅ Bot conectado como {bot.user}")
+    synced = await bot.tree.sync()
+    print(f"✅ Bot conectado como {bot.user} | {len(synced)} comandos sincronizados.")
 
+    # Imprimir cada comando sincronizado
+    for command in bot.tree.get_commands():
+        print(f"📌 Comando registrado: /{command.name} → {command.description}")
+
+    revisar_youtube.start()
 
 
 @bot.event
@@ -321,7 +325,6 @@ async def help_command(interaction: discord.Interaction):
     )
 
     await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
 
 
 # ---------- /ship ----------
