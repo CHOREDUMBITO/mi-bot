@@ -139,7 +139,7 @@ async def revisar_youtube():
 # ------------------------------
 
 # /sugerencia
-@tree.command(name="sugerencia", description="Envía una sugerencia al servidor", extras={"categoria": "Utilidad"})
+@bot.tree.command(name="sugerencia", description="Envía una sugerencia al servidor", extras={"categoria": "Utilidad"})
 async def sugerencia(interaction: discord.Interaction, texto: str):
     if interaction.channel.id != CANAL_SUGERENCIAS:
         await interaction.response.send_message(
@@ -165,14 +165,14 @@ async def sugerencia(interaction: discord.Interaction, texto: str):
 
 
 # /ping
-@tree.command(name="ping", description="Responde con Pong y el ping del bot", extras={"categoria": "Información"})
+@bot.tree.command(name="ping", description="Responde con Pong y el ping del bot", extras={"categoria": "Información"})
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
     await interaction.response.send_message(f"🏓 Pong! Latencia: {latency}ms")
 
 
 # /clear
-@tree.command(name="clear", description="Borra mensajes recientes (solo admins)", extras={"categoria": "Moderación"})
+@bot.tree.command(name="clear", description="Borra mensajes recientes (solo admins)", extras={"categoria": "Moderación"})
 @app_commands.describe(cantidad="Cantidad de mensajes a borrar (máximo 100)")
 async def clear(interaction: discord.Interaction, cantidad: int):
     if not interaction.user.guild_permissions.administrator:
@@ -187,7 +187,7 @@ async def clear(interaction: discord.Interaction, cantidad: int):
 
 
 # /serverinfo
-@tree.command(name="serverinfo", description="Muestra información del servidor", extras={"categoria": "Información"})
+@bot.tree.command(name="serverinfo", description="Muestra información del servidor", extras={"categoria": "Información"})
 async def serverinfo(interaction: discord.Interaction):
     guild = interaction.guild
     embed = discord.Embed(title=f"Información de {guild.name}", color=discord.Color.gold())
@@ -203,7 +203,7 @@ async def serverinfo(interaction: discord.Interaction):
 
 
 # /ban
-@tree.command(name="ban", description="Banea a un usuario (solo admins)", extras={"categoria": "Moderación"})
+@bot.tree.command(name="ban", description="Banea a un usuario (solo admins)", extras={"categoria": "Moderación"})
 @app_commands.describe(usuario="Usuario a banear", razon="Razón del baneo")
 async def ban(interaction: discord.Interaction, usuario: discord.Member, razon: str = "No especificada"):
     if not interaction.user.guild_permissions.administrator:
@@ -217,7 +217,7 @@ async def ban(interaction: discord.Interaction, usuario: discord.Member, razon: 
 
 
 # /kick
-@tree.command(name="kick", description="Expulsa a un usuario (solo admins)", extras={"categoria": "Moderación"})
+@bot.tree.command(name="kick", description="Expulsa a un usuario (solo admins)", extras={"categoria": "Moderación"})
 @app_commands.describe(usuario="Usuario a expulsar", razon="Razón de la expulsión")
 async def kick(interaction: discord.Interaction, usuario: discord.Member, razon: str = "No especificada"):
     if not interaction.user.guild_permissions.administrator:
@@ -231,7 +231,7 @@ async def kick(interaction: discord.Interaction, usuario: discord.Member, razon:
 
 
 # /nivel
-@tree.command(name="nivel", description="Muestra tu nivel y XP", extras={"categoria": "Utilidad"})
+@bot.tree.command(name="nivel", description="Muestra tu nivel y XP", extras={"categoria": "Utilidad"})
 async def nivel(interaction: discord.Interaction, usuario: discord.Member = None):
     usuario = usuario or interaction.user
     user_id = str(usuario.id)
@@ -253,7 +253,7 @@ async def nivel(interaction: discord.Interaction, usuario: discord.Member = None
 
 
 # /toplevels
-@tree.command(name="toplevels", description="Muestra el top de jugadores con más nivel", extras={"categoria": "Utilidad"})
+@bot.tree.command(name="toplevels", description="Muestra el top de jugadores con más nivel", extras={"categoria": "Utilidad"})
 async def toplevels(interaction: discord.Interaction):
     if not niveles:
         await interaction.response.send_message("❌ Aún no hay datos de XP.", ephemeral=True)
@@ -276,7 +276,7 @@ async def toplevels(interaction: discord.Interaction):
 
 
 # /help
-@tree.command(name="help", description="Muestra la lista de comandos por categoría", extras={"categoria": "Utilidad"})
+@bot.tree.command(name="help", description="Muestra la lista de comandos por categoría", extras={"categoria": "Utilidad"})
 async def help_command(interaction: discord.Interaction):
     categorias = defaultdict(list)
 
@@ -324,7 +324,7 @@ async def help_command(interaction: discord.Interaction):
 
 
 # ---------- /ship ----------
-@bot.tree.command(name="ship", description="Calcula la compatibilidad entre dos personas.")
+@bot.tree.command(name="ship", description="Calcula la compatibilidad entre dos personas.", extras={"categoria": "Información"})
 @app_commands.describe(user1="Primera persona", user2="Segunda persona")
 async def ship(interaction: discord.Interaction, user1: discord.User, user2: discord.User):
     score = random.randint(0, 100)
@@ -334,7 +334,7 @@ async def ship(interaction: discord.Interaction, user1: discord.User, user2: dis
     )
 
 # ---------- /calc ----------
-@bot.tree.command(name="calc", description="Calculadora simple.")
+@bot.tree.command(name="calc", description="Calculadora simple.", extras={"categoria": "Utilidad"})
 @app_commands.describe(expression="Expresión matemática (ej. 2+2*3)")
 async def calc(interaction: discord.Interaction, expression: str):
     try:
@@ -344,7 +344,7 @@ async def calc(interaction: discord.Interaction, expression: str):
         await interaction.response.send_message("❌ Expresión inválida.", ephemeral=True)
 
 # ---------- /weather con embed ----------
-@bot.tree.command(name="weather", description="Consulta el clima actual de una ciudad.")
+@bot.tree.command(name="weather", description="Consulta el clima actual de una ciudad.", extras={"categoria": "Información"})
 @app_commands.describe(city="Nombre de la ciudad")
 async def weather(interaction: discord.Interaction, city: str):
     url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={OPENWEATHER_API_KEY}&units=metric&lang=es"
