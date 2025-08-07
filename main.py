@@ -64,9 +64,10 @@ ultimo_video_id = None
 
 @bot.event
 async def on_ready():
-    await tree.sync()
+    await bot.tree.sync() 
     revisar_youtube.start()
     print(f"✅ Bot conectado como {bot.user}")
+
 
 
 @bot.event
