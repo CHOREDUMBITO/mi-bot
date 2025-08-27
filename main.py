@@ -11,20 +11,23 @@ import math
 import aiohttp
 from discord.ui import View, Select
 from collections import defaultdict
+from flask import Flask
+from threading import Thread
 
-# --- Mantener vivo el bot en Render/Replit ---
-app = Flask('')
+# --- Flask para mantener el bot activo ---
+    app = Flask('')
 
-@app.route('/')
-def home():
-    return "El bot está vivo!"
+    @app.route('/status')
+    def status():
+        return "online"
 
-def run():
-    app.run(host='0.0.0.0', port=8080)
+    def run():
+        app.run(host='0.0.0.0', port=8080)
 
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
+    def keep_alive():
+        t = Thread(target=run)
+        t.start()
+
 
 # --- Cliente principal con commands.Bot ---
 intents = discord.Intents.default()
